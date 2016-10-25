@@ -30,11 +30,11 @@ function setup_env {
 	if [ $MODEL = "artik5" ]; then
 		KERNEL_DTB="exynos3250-artik5.dtb"
 		BOOT_PART_TYPE=vfat
-		env_offset=4159
+		env_offset=1031
 	elif [ $MODEL = "artik10" ]; then
 		KERNEL_DTB="exynos5422-artik10.dtb"
 		BOOT_PART_TYPE=vfat
-		env_offset=4159
+		env_offset=1231
 	fi
 
 	BL1="bl1.bin"
@@ -48,8 +48,8 @@ function setup_env {
 	BL1_OFFSET=1
 	BL2_OFFSET=31
 	UBOOT_OFFSET=63
-	TZSW_OFFSET=2111
-	ENV_OFFSET=4159
+	TZSW_OFFSET=719
+	ENV_OFFSET=$env_offset
 
 	SKIP_BOOT_SIZE=4
 	BOOT_SIZE=32
@@ -307,7 +307,7 @@ function repartition_sd_recovery {
 		sudo umount $mnt
 	done
 
-	echo "Remove partition table..."                                                
+	echo "Remove partition table..."
 	sudo su -c "dd if=/dev/zero of=$DEVICE bs=512 count=1 conv=notrunc"
 
 	sudo sfdisk -u M $DEVICE <<-__EOF__
@@ -348,7 +348,7 @@ function repartition_sd_boot {
 		sudo umount $mnt
 	done
 
-	echo "Remove partition table..."                                                
+	echo "Remove partition table..."
 	sudo su -c "dd if=/dev/zero of=$DEVICE bs=512 count=1 conv=notrunc"
 
 	sudo sfdisk $DEVICE <<-__EOF__
@@ -360,7 +360,7 @@ function repartition_sd_boot {
 	,${USER_SIZE}M,,-
 	__EOF__
 
-	echo "Creating new filesystems..."  
+	echo "Creating new filesystems..."
 	if [ "$BOOT_PART_TYPE" == "vfat" ]; then
 		sudo su -c "mkfs.vfat -F 16 $DEVICE$BOOTPART -n $BOOT"
 	elif [ "$BOOT_PART_TYPE" == "ext4" ]; then
@@ -441,4 +441,3 @@ fi
 fuse_images
 
 rm -rf $TARGET_DIR
-
