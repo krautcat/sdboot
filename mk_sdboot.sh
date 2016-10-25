@@ -364,7 +364,7 @@ function repartition_sd_recovery {
 		8MiB,${ROOTFS_SIZE}MiB,,-
 		__EOF__
 	fi
-
+	
 	if [ "$BOOT_PART_TYPE" == "vfat" ]; then
 		sudo su -c "mkfs.vfat -F 16 $DEVICE$PART$BOOTPART -n $BOOT"
 	elif [ "$BOOT_PART_TYPE" == "ext4" ]; then
