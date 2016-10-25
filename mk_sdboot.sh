@@ -424,6 +424,15 @@ function repartition_sd_boot {
 		__EOF__
 	fi
 
+#	sudo sfdisk $DEVICE <<-__EOF__
+#	${SKIP_BOOT_SIZE}M,${BOOT_SIZE}M,0xE,*
+#	$(($SKIP_BOOT_SIZE+$BOOT_SIZE))M,${MODULE_SIZE}M,,-
+#	$(($SKIP_BOOT_SIZE+$BOOT_SIZE+$MODULE_SIZE))M,${ROOTFS_SIZE}M,,-
+#	$(($SKIP_BOOT_SIZE+$BOOT_SIZE+$MODULE_SIZE+$ROOTFS_SIZE))M,,E,-
+#	,${DATA_SIZE}M,,-
+#	,${USER_SIZE}M,,-
+#	__EOF__
+
 	echo "Creating new filesystems..."
 	if [ "$BOOT_PART_TYPE" == "vfat" ]; then
 		sudo su -c "mkfs.vfat -F 16 $DEVICE$PART$BOOTPART -n $BOOT"
