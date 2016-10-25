@@ -420,6 +420,7 @@ function repartition_sd_boot {
 		__EOF__
 	fi
 
+	echo "Creating new filesystems..."  
 	if [ "$BOOT_PART_TYPE" == "vfat" ]; then
 		sudo su -c "mkfs.vfat -F 16 $DEVICE$PART$BOOTPART -n $BOOT"
 	elif [ "$BOOT_PART_TYPE" == "ext4" ]; then
