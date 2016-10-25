@@ -310,7 +310,7 @@ function repartition_sd_recovery {
 	echo "Remove partition table..."                                                
 	sudo su -c "dd if=/dev/zero of=$DEVICE bs=512 count=1 conv=notrunc"
 
-	sudo sfdisk --in-order --Linux --unit M $DEVICE <<-__EOF__
+	sudo sfdisk -u M $DEVICE <<-__EOF__
 	$SKIP_BOOT_SIZE,$BOOT_SIZE,0xE,*
 	,$MODULE_SIZE,,-
 	,$ROOTFS_SIZE,,-
@@ -351,13 +351,13 @@ function repartition_sd_boot {
 	echo "Remove partition table..."                                                
 	sudo su -c "dd if=/dev/zero of=$DEVICE bs=512 count=1 conv=notrunc"
 
-	sudo sfdisk --in-order --Linux --unit M $DEVICE <<-__EOF__
-	$SKIP_BOOT_SIZE,$BOOT_SIZE,0xE,*
-	,$MODULE_SIZE,,-
-	,$ROOTFS_SIZE,,-
-	,,E,-
-	,$DATA_SIZE,,-
-	,$USER_SIZE,,-
+	sudo sfdisk -o START,SIZE -uS $DEVICE <<-__EOF__
+	$SKIP_BOOT_SIZE,{$BOOT_SIZE}
+	,{$MODULE_SIZE}M
+	,{$ROOTFS_SIZE}M
+	,
+	,{$DATA_SIZE}M
+	,{$USER_SIZE}M
 	__EOF__
 
 	if [ "$BOOT_PART_TYPE" == "vfat" ]; then
