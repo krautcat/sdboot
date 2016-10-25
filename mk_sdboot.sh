@@ -82,6 +82,10 @@ function setup_env {
 	SDBOOT_FILES=("${sdboot_files[@]}")
 	SDBOOT_OFFSETS=("${sdboot_offsets[@]}")
 
+	BL1_OFFSET=1
+	BL2_OFFSET=31
+	UBOOT_OFFSET=63
+	TZSW_OFFSET=719
 	ENV_OFFSET=$env_offset
 
 	SKIP_BOOT_SIZE=4
@@ -348,7 +352,7 @@ function repartition_sd_recovery {
 		sudo umount $mnt
 	done
 
-	echo "Remove partition table..."                                                
+	echo "Remove partition table..."
 	sudo su -c "dd if=/dev/zero of=$DEVICE bs=512 count=1 conv=notrunc"
 
 	if $OLD_SFDISK; then
@@ -397,7 +401,7 @@ function repartition_sd_boot {
 		sudo umount $mnt
 	done
 
-	echo "Remove partition table..."                                                
+	echo "Remove partition table..."
 	sudo su -c "dd if=/dev/zero of=$DEVICE bs=512 count=1 conv=notrunc"
 
 	if $OLD_SFDISK; then
@@ -420,7 +424,7 @@ function repartition_sd_boot {
 		__EOF__
 	fi
 
-	echo "Creating new filesystems..."  
+	echo "Creating new filesystems..."
 	if [ "$BOOT_PART_TYPE" == "vfat" ]; then
 		sudo su -c "mkfs.vfat -F 16 $DEVICE$PART$BOOTPART -n $BOOT"
 	elif [ "$BOOT_PART_TYPE" == "ext4" ]; then
@@ -553,4 +557,3 @@ fi
 fuse_images
 
 rm -rf $TARGET_DIR
-
