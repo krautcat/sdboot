@@ -351,15 +351,16 @@ function repartition_sd_boot {
 	echo "Remove partition table..."                                                
 	sudo su -c "dd if=/dev/zero of=$DEVICE bs=512 count=1 conv=notrunc"
 
-	sudo sfdisk -o START,SIZE -uS $DEVICE <<-__EOF__
-	$SKIP_BOOT_SIZE,{$BOOT_SIZE}
-	,{$MODULE_SIZE}M
-	,{$ROOTFS_SIZE}M
-	,
-	,{$DATA_SIZE}M
-	,{$USER_SIZE}M
+	sudo sfdisk $DEVICE <<-__EOF__
+	${SKIP_BOOT_SIZE}M,${BOOT_SIZE}M,0xE,*
+	$(($SKIP_BOOT_SIZE+$BOOT_SIZE))M,${MODULE_SIZE}M,,-
+	$(($SKIP_BOOT_SIZE+$BOOT_SIZE+$MODULE_SIZE))M,${ROOTFS_SIZE}M,,-
+	$(($SKIP_BOOT_SIZE+$BOOT_SIZE+$MODULE_SIZE+$ROOTFS_SIZE))M,,E,-
+	,${DATA_SIZE}M,,-
+	,${USER_SIZE}M,,-
 	__EOF__
 
+	echo "Creating new filesystems..."  
 	if [ "$BOOT_PART_TYPE" == "vfat" ]; then
 		sudo su -c "mkfs.vfat -F 16 $DEVICE$BOOTPART -n $BOOT"
 	elif [ "$BOOT_PART_TYPE" == "ext4" ]; then
