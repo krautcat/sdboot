@@ -14,7 +14,7 @@ BUILD_DIR=$(cd "$(dirname "$0")" && pwd)
 TARGET_DIR=`mktemp -d`
 SDCARD_SIZE=""
 
-PART=""
+PART_SEPARATOR="p"
 BOOTPART=1
 MODULESPART=2
 ROOTFSPART=3
@@ -85,7 +85,7 @@ function setup_env {
 	BL1_OFFSET=1
 	BL2_OFFSET=31
 	UBOOT_OFFSET=63
-	TZSW_OFFSET=719
+	TZSW_OFFSET=2111
 	ENV_OFFSET=$env_offset
 
 	SKIP_BOOT_SIZE=4
@@ -150,7 +150,7 @@ function check_options {
 	test 100 -lt $USER_SIZE || die  "We recommend to use more than 4GB disk"
 
 	if [ $FORMAT == false ] && [ $RECOVERY == false ] ; then
-		test -e $DEVICE$PART$USERPART || die "Need to format the disk. Please, use '-f' option."
+		test -e $DEVICE$PART_SEPARATOR$USERPART || die "Need to format the disk. Please, use '-f' option."
 	fi
 }
 
@@ -356,7 +356,7 @@ function repartition_sd_recovery {
 	sudo su -c "dd if=/dev/zero of=$DEVICE bs=512 count=1 conv=notrunc"
 
 	if $OLD_SFDISK; then
-		sudo sfdisk --in-order --Linux --unit M $DEVICE <<-__EOF__
+		sudo sfdisk --Linux --unit M $DEVICE <<-__EOF__
 		$SKIP_BOOT_SIZE,$BOOT_SIZE,0xE,*
 		,$MODULE_SIZE,,-
 		,$ROOTFS_SIZE,,-
@@ -370,12 +370,12 @@ function repartition_sd_recovery {
 	fi
 	
 	if [ "$BOOT_PART_TYPE" == "vfat" ]; then
-		sudo su -c "mkfs.vfat -F 16 $DEVICE$PART$BOOTPART -n $BOOT"
+		sudo su -c "mkfs.vfat -F 16 $DEVICE$PART_SEPARATOR$BOOTPART -n $BOOT"
 	elif [ "$BOOT_PART_TYPE" == "ext4" ]; then
-		sudo su -c "mkfs.ext4 -q $DEVICE$PART$BOOTPART -L $BOOT -F"
+		sudo su -c "mkfs.ext4 -q $DEVICE$PART_SEPARATOR$BOOTPART -L $BOOT -F"
 	fi
-	sudo su -c "mkfs.ext4 -q $DEVICE$PART$MODULESPART -L $MODULE -F"
-	sudo su -c "mkfs.ext4 -q $DEVICE$PART$ROOTFSPART -L $ROOTFS -F"
+	sudo su -c "mkfs.ext4 -q $DEVICE$PART_SEPARATOR$MODULESPART -L $MODULE -F"
+	sudo su -c "mkfs.ext4 -q $DEVICE$PART_SEPARATOR$ROOTFSPART -L $ROOTFS -F"
 }
 
 function repartition_sd_boot {
@@ -405,13 +405,13 @@ function repartition_sd_boot {
 	sudo su -c "dd if=/dev/zero of=$DEVICE bs=512 count=1 conv=notrunc"
 
 	if $OLD_SFDISK; then
-		sudo sfdisk --in-order --Linux --unit M $DEVICE <<-__EOF__
-		$SKIP_BOOT_SIZE,$BOOT_SIZE,0xE,*
-		,$MODULE_SIZE,,-
-		,$ROOTFS_SIZE,,-
-		,,E,-
-		,$DATA_SIZE,,-
-		,$USER_SIZE,,-
+		sudo sfdisk --Linux --unit M $DEVICE <<-__EOF__
+		${SKIP_BOOT_SIZE}M,${BOOT_SIZE}M,0xE,*
+		$(($SKIP_BOOT_SIZE+$BOOT_SIZE))M,${MODULE_SIZE}M,,-
+		$(($SKIP_BOOT_SIZE+$BOOT_SIZE+$MODULE_SIZE))M,${ROOTFS_SIZE}M,,-
+		$(($SKIP_BOOT_SIZE+$BOOT_SIZE+$MODULE_SIZE+$ROOTFS_SIZE))M,,E,-
+		,${DATA_SIZE}M,,-
+		,${USER_SIZE}M,,-
 		__EOF__
 	else
 		sudo sfdisk $DEVICE <<-__EOF__
@@ -424,25 +424,17 @@ function repartition_sd_boot {
 		__EOF__
 	fi
 
-#	sudo sfdisk $DEVICE <<-__EOF__
-#	${SKIP_BOOT_SIZE}M,${BOOT_SIZE}M,0xE,*
-#	$(($SKIP_BOOT_SIZE+$BOOT_SIZE))M,${MODULE_SIZE}M,,-
-#	$(($SKIP_BOOT_SIZE+$BOOT_SIZE+$MODULE_SIZE))M,${ROOTFS_SIZE}M,,-
-#	$(($SKIP_BOOT_SIZE+$BOOT_SIZE+$MODULE_SIZE+$ROOTFS_SIZE))M,,E,-
-#	,${DATA_SIZE}M,,-
-#	,${USER_SIZE}M,,-
-#	__EOF__
 
 	echo "Creating new filesystems..."
 	if [ "$BOOT_PART_TYPE" == "vfat" ]; then
-		sudo su -c "mkfs.vfat -F 16 $DEVICE$PART$BOOTPART -n $BOOT"
+		sudo su -c "mkfs.vfat -F 16 $DEVICE$PART_SEPARATOR$BOOTPART -n $BOOT"
 	elif [ "$BOOT_PART_TYPE" == "ext4" ]; then
-		sudo su -c "mkfs.ext4 -q $DEVICE$PART$BOOTPART -L $BOOT -F"
+		sudo su -c "mkfs.ext4 -q $DEVICE$PART_SEPARATOR$BOOTPART -L $BOOT -F"
 	fi
-	sudo su -c "mkfs.ext4 -q $DEVICE$PART$MODULESPART -L $MODULE -F"
-	sudo su -c "mkfs.ext4 -q $DEVICE$PART$ROOTFSPART -L $ROOTFS -F"
-	sudo su -c "mkfs.ext4 -q $DEVICE$PART$SYSTEMDATAPART -L $SYSTEMDATA -F"
-	sudo su -c "mkfs.ext4 -q $DEVICE$PART$USERPART -L $USER -F"
+	sudo su -c "mkfs.ext4 -q $DEVICE$PART_SEPARATOR$MODULESPART -L $MODULE -F"
+	sudo su -c "mkfs.ext4 -q $DEVICE$PART_SEPARATOR$ROOTFSPART -L $ROOTFS -F"
+	sudo su -c "mkfs.ext4 -q $DEVICE$PART_SEPARATOR$SYSTEMDATAPART -L $SYSTEMDATA -F"
+	sudo su -c "mkfs.ext4 -q $DEVICE$PART_SEPARATOR$USERPART -L $USER -F"
 }
 
 function clear_sdcard {
@@ -482,6 +474,14 @@ function clear_sdcard {
 	fi
 
 	sudo su -c "mkfs.ext4 -q ${DEVICE}${PART}1 -L SDCARD -F"
+		sudo su -c "mkfs.vfat -F 16 $DEVICE$PART_SEPARATOR$BOOTPART -n $BOOT"
+	elif [ "$BOOT_PART_TYPE" == "ext4" ]; then
+		sudo su -c "mkfs.ext4 -q $DEVICE$PART_SEPARATOR$BOOTPART -L $BOOT -F"
+	fi
+	sudo su -c "mkfs.ext4 -q $DEVICE$PART_SEPARATOR$MODULESPART -L $MODULE -F"
+	sudo su -c "mkfs.ext4 -q $DEVICE$PART_SEPARATOR$ROOTFSPART -L $ROOTFS -F"
+	sudo su -c "mkfs.ext4 -q $DEVICE$PART_SEPARATOR$SYSTEMDATAPART -L $SYSTEMDATA -F"
+	sudo su -c "mkfs.ext4 -q $DEVICE$PART_SEPARATOR$USERPART -L $USER -F"
 }
 
 function repartition_sd {
@@ -506,23 +506,23 @@ function fuse_images {
 	fi
 
 	if [ -f $TARGET_DIR/$BOOTIMG ]; then
-		sudo su -c "dd if=$TARGET_DIR/$BOOTIMG of=$DEVICE$PART$BOOTPART bs=1M"
+		sudo su -c "dd if=$TARGET_DIR/$BOOTIMG of=$DEVICE$PART_SEPARATOR$BOOTPART bs=1M"
 	fi
 
 	if [ -f $TARGET_DIR/$MODULESIMG ]; then
-		sudo su -c "dd if=$TARGET_DIR/$MODULESIMG of=$DEVICE$PART$MODULESPART bs=1M"
+		sudo su -c "dd if=$TARGET_DIR/$MODULESIMG of=$DEVICE$PART_SEPARATOR$MODULESPART bs=1M"
 	fi
 
 	if [ -f $TARGET_DIR/$ROOTFSIMG ]; then
-		sudo su -c "dd if=$TARGET_DIR/$ROOTFSIMG of=$DEVICE$PART$ROOTFSPART bs=1M"
+		sudo su -c "dd if=$TARGET_DIR/$ROOTFSIMG of=$DEVICE$PART_SEPARATOR$ROOTFSPART bs=1M"
 	fi
 
 	if [ -f $TARGET_DIR/$SYSTEMDATAIMG ]; then
-		sudo su -c "dd if=$TARGET_DIR/$SYSTEMDATAIMG of=$DEVICE$PART$SYSTEMDATAPART bs=1M"
+		sudo su -c "dd if=$TARGET_DIR/$SYSTEMDATAIMG of=$DEVICE$PART_SEPARATOR$SYSTEMDATAPART bs=1M"
 	fi
 
 	if [ -f $TARGET_DIR/$USERIMG ]; then
-		sudo su -c "dd if=$TARGET_DIR/$USERIMG of=$DEVICE$PART$USERPART bs=1M"
+		sudo su -c "dd if=$TARGET_DIR/$USERIMG of=$DEVICE$PART_SEPARATOR$USERPART bs=1M"
 	fi
 
 	sync; sync;
