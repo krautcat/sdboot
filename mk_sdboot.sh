@@ -30,11 +30,11 @@ function setup_env {
 	if [ $MODEL = "artik5" ]; then
 		KERNEL_DTB="exynos3250-artik5.dtb"
 		BOOT_PART_TYPE=vfat
-		env_offset=1031
+		env_offset=4159
 	elif [ $MODEL = "artik10" ]; then
 		KERNEL_DTB="exynos5422-artik10.dtb"
 		BOOT_PART_TYPE=vfat
-		env_offset=1231
+		env_offset=4159
 	fi
 
 	BL1="bl1.bin"
@@ -48,7 +48,7 @@ function setup_env {
 	BL1_OFFSET=1
 	BL2_OFFSET=31
 	UBOOT_OFFSET=63
-	TZSW_OFFSET=719
+	TZSW_OFFSET=2111
 	ENV_OFFSET=$env_offset
 
 	SKIP_BOOT_SIZE=4
@@ -102,7 +102,7 @@ function check_options {
 	test 100 -lt $USER_SIZE || die  "We recommend to use more than 4GB disk"
 
 	if [ $FORMAT == false ] && [ $RECOVERY == false ] ; then
-		test -e $DEVICE$USERPART || die "Need to format the disk. Please, use '-f' option."
+		test -e ${DEVICE}p${USERPART} || die "Need to format the disk. Please, use '-f' option."
 	fi
 }
 
@@ -362,14 +362,14 @@ function repartition_sd_boot {
 
 	echo "Creating new filesystems..."
 	if [ "$BOOT_PART_TYPE" == "vfat" ]; then
-		sudo su -c "mkfs.vfat -F 16 $DEVICE$BOOTPART -n $BOOT"
+		sudo su -c "mkfs.vfat -F 16 ${DEVICE}p${BOOTPART} -n $BOOT"
 	elif [ "$BOOT_PART_TYPE" == "ext4" ]; then
-		sudo su -c "mkfs.ext4 -q $DEVICE$BOOTPART -L $BOOT -F"
+		sudo su -c "mkfs.ext4 -q ${DEVICE}p${BOOTPART} -L $BOOT -F"
 	fi
-	sudo su -c "mkfs.ext4 -q $DEVICE$MODULESPART -L $MODULE -F"
-	sudo su -c "mkfs.ext4 -q $DEVICE$ROOTFSPART -L $ROOTFS -F"
-	sudo su -c "mkfs.ext4 -q $DEVICE$SYSTEMDATAPART -L $SYSTEMDATA -F"
-	sudo su -c "mkfs.ext4 -q $DEVICE$USERPART -L $USER -F"
+	sudo su -c "mkfs.ext4 -q ${DEVICE}p${MODULESPART} -L $MODULE -F"
+	sudo su -c "mkfs.ext4 -q ${DEVICE}p${ROOTFSPART} -L $ROOTFS -F"
+	sudo su -c "mkfs.ext4 -q ${DEVICE}p${SYSTEMDATAPART} -L $SYSTEMDATA -F"
+	sudo su -c "mkfs.ext4 -q ${DEVICE}p${USERPART} -L $USER -F"
 }
 
 function repartition_sd {
@@ -388,23 +388,23 @@ function fuse_images {
 	fi
 
 	if [ -f $TARGET_DIR/$BOOTIMG ]; then
-		sudo su -c "dd if=$TARGET_DIR/$BOOTIMG of=$DEVICE$BOOTPART bs=1M"
+		sudo su -c "dd if=$TARGET_DIR/$BOOTIMG of=${DEVICE}p${BOOTPART} bs=1M"
 	fi
 
 	if [ -f $TARGET_DIR/$MODULESIMG ]; then
-		sudo su -c "dd if=$TARGET_DIR/$MODULESIMG of=$DEVICE$MODULESPART bs=1M"
+		sudo su -c "dd if=$TARGET_DIR/$MODULESIMG of=${DEVICE}p${MODULESPART} bs=1M"
 	fi
 
 	if [ -f $TARGET_DIR/$ROOTFSIMG ]; then
-		sudo su -c "dd if=$TARGET_DIR/$ROOTFSIMG of=$DEVICE$ROOTFSPART bs=1M"
+		sudo su -c "dd if=$TARGET_DIR/$ROOTFSIMG of=${DEVICE}p${ROOTFSPART} bs=1M"
 	fi
 
 	if [ -f $TARGET_DIR/$SYSTEMDATAIMG ]; then
-		sudo su -c "dd if=$TARGET_DIR/$SYSTEMDATAIMG of=$DEVICE$SYSTEMDATAPART bs=1M"
+		sudo su -c "dd if=$TARGET_DIR/$SYSTEMDATAIMG of=${DEVICE}p${SYSTEMDATAPART} bs=1M"
 	fi
 
 	if [ -f $TARGET_DIR/$USERIMG ]; then
-		sudo su -c "dd if=$TARGET_DIR/$USERIMG of=$DEVICE$USERPART bs=1M"
+		sudo su -c "dd if=$TARGET_DIR/$USERIMG of=${DEVICE}p${USERPART} bs=1M"
 	fi
 
 	sync; sync;
